@@ -30,10 +30,17 @@ set(CPP_FILE SIL)
 set(CPP_FILE_NAME src/${CPP_FILE}.cpp)
 INCLUDE_DIRECTORIES(${MATLAB_INCLUDE_DIR} ${SIMULINK_INCLUDE_DIR})
 add_library(${CPP_FILE} SHARED ${CPP_FILE_NAME} ${CMAKE_SOURCE_DIR}/Matlabdef.def
-  src/lib/controller_base.cpp
-  src/lib/controller_example.cpp
-  include/controller_base.h
-  include/controller_example.h
+  src/lib/estimator_base.cpp
+  src/lib/estimator_example.cpp
+  include/estimator_base.h
+  include/estimator_example.h
+  include/lib/mathlib/mathlib.h
+  include/lib/mathlib/math/Limits.cpp
+  include/lib/mathlib/math/Limits.hpp
+  include/lib/mathlib/math/Matrix.hpp
+  include/lib/mathlib/math/Vector.hpp
+  include/lib/mathlib/math/Quaternion.hpp
+
   )
 
 target_link_libraries(${CPP_FILE} ${MATLAB_LIBRARIES}

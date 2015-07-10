@@ -3,41 +3,23 @@
 
 #include <simstruc.h>
 #include <ctime>
-#include "controller_base.h"
-#include "controller_example.h"
+#include "estimator_base.h"
+#include "estimator_example.h"
 #include <iostream>
 
-#define NUM_PARAMS (26)
+#define NUM_PARAMS (9)
 #define IS_PARAM_DOUBLE(pVal) (mxIsNumeric(pVal) && !mxIsLogical(pVal) &&\
 !mxIsEmpty(pVal) && !mxIsSparse(pVal) && !mxIsComplex(pVal) && mxIsDouble(pVal))
 
-#define ALT_HZ 0
-#define ALT_TOZ 1
-#define K_THETA_DC 2
-#define TS 3
-#define TAU 4
-#define C_kp 5
-#define C_kd 6
-#define C_ki 7
-#define R_kp 8
-#define R_ki 9
-#define R_kd 10
-#define P_kp 11
-#define P_ki 12
-#define P_kd 13
-#define A_p_kp 14
-#define A_p_ki 15
-#define A_p_kd 16
-#define A_t_kp 17
-#define A_t_ki 18
-#define A_t_kd 19
-#define A_kp 20
-#define A_ki 21
-#define A_kd 22
-#define B_kp 23
-#define B_ki 24
-#define B_kd 25
-
+#define GRAVITY 0
+#define RHO 1
+#define SIGMA_ACCEL 2
+#define SIGMA_GYRO 3
+#define SIGMA_N_GPS 4
+#define SIGMA_E_GPS 5
+#define SIGMA_VG_GPS 6
+#define SIGMA_COURSE_GPS 7
+#define TS 8
 
 #define MDL_CHECK_PARAMETERS
 #if defined(MDL_CHECK_PARAMETERS)
@@ -88,7 +70,7 @@ static void mdlInitializeSizes(SimStruct *S)
     /* Configure the input ports */
     /*****************************/
     if(!ssSetNumInputPorts(S, 1)) return;
-    ssSetInputPortWidth(S, 0, 20);
+    ssSetInputPortWidth(S, 0, 14);
     ssSetInputPortDirectFeedThrough(S, 0, 1); // we will use the input in the output step
 
     /******************************/
@@ -130,8 +112,8 @@ static void mdlInitializeSizes(SimStruct *S)
 static void mdlStart(SimStruct *S)
 {
     mexLock();
-    controller_base* pController = new controller_example;
-    ssGetPWork(S)[0] = (void *) pController;
+    estimator_base* pEstimator = new estimator_example;
+    ssGetPWork(S)[0] = (void *) pEstimator;
 
     //pController->time = std::clock();
 }
@@ -150,7 +132,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     /**************/
     /* Get Controller out of PWork */
     /**************/
-    controller_base* pController = (controller_base*) ssGetPWork(S)[0];
+    estimator_base* pEstimator = (estimator_base*) ssGetPWork(S)[0];
 
     /**************/
     /* Grab Input */
@@ -158,54 +140,36 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 
     InputRealPtrsType uPtrs = ssGetInputPortRealSignalPtrs(S,0); // this returns a pointer to the data on the input port;
 
-    struct controller_base::input_s input;
+    struct estimator_base::input_s input;
 
-    input.h = *uPtrs[2];
-    input.va = *uPtrs[3];
-    input.phi = *uPtrs[6];
-    input.theta = *uPtrs[7];
-    input.chi = *uPtrs[8];
-    input.p = *uPtrs[9];
-    input.q = *uPtrs[10];
-    input.r = *uPtrs[11];
-    input.Va_c = *uPtrs[16];
-    input.h_c = *uPtrs[17];
-    input.chi_c = *uPtrs[18];
+    input.gyro_x = *uPtrs[0];
+    input.gyro_y = *uPtrs[1];
+    input.gyro_z = *uPtrs[2];
+    input.accel_x = *uPtrs[3];
+    input.accel_y = *uPtrs[4];
+    input.accel_z = *uPtrs[5];
+    input.static_pres = *uPtrs[6];
+    input.diff_pres = *uPtrs[7];
+    input.gps_n = *uPtrs[8];
+    input.gps_e = *uPtrs[9];
+    input.gps_h = *uPtrs[10];
+    input.gps_Vg = *uPtrs[11];
+    input.gps_course = *uPtrs[12];
 
     /***************/
     /* Grab Params */
     /***************/
 
-    struct controller_base::params_s params;
+    struct estimator_base::params_s params;
 
-    params.alt_hz = (float) mxGetScalar( ssGetSFcnParam(S, ALT_HZ));
-    params.alt_toz = mxGetScalar( ssGetSFcnParam(S, ALT_TOZ));
-    params.tau = mxGetScalar(ssGetSFcnParam(S, TAU));
-    params.c_kp = mxGetScalar(ssGetSFcnParam(S, C_kp));
-    params.c_kd = mxGetScalar(ssGetSFcnParam(S, C_kd));
-    params.c_ki = mxGetScalar(ssGetSFcnParam(S, C_ki));
-    params.r_kp = mxGetScalar(ssGetSFcnParam(S, R_kp));
-    params.r_kd = mxGetScalar(ssGetSFcnParam(S, R_kd));
-    params.r_ki = mxGetScalar(ssGetSFcnParam(S, R_ki));
-    params.p_kp = mxGetScalar(ssGetSFcnParam(S, P_kp));
-    params.p_kd = mxGetScalar(ssGetSFcnParam(S, P_kd));
-    params.p_ki = mxGetScalar(ssGetSFcnParam(S, P_ki));
-    params.a_p_kp = mxGetScalar(ssGetSFcnParam(S, A_p_kp));
-    params.a_p_kd = mxGetScalar(ssGetSFcnParam(S, A_p_kd));
-    params.a_p_ki = mxGetScalar(ssGetSFcnParam(S, A_p_ki));
-    params.a_t_kp = mxGetScalar(ssGetSFcnParam(S, A_t_kp));
-    params.a_t_kd = mxGetScalar(ssGetSFcnParam(S, A_t_kd));
-    params.a_t_ki = mxGetScalar(ssGetSFcnParam(S, A_t_ki));
-    params.a_kp = mxGetScalar(ssGetSFcnParam(S, A_kp));
-    params.a_kd = mxGetScalar(ssGetSFcnParam(S, A_kd));
-    params.a_ki = mxGetScalar(ssGetSFcnParam(S, A_ki));
-    params.b_kp = mxGetScalar(ssGetSFcnParam(S, B_kp));
-    params.b_kd = mxGetScalar(ssGetSFcnParam(S, B_kd));
-    params.b_ki = mxGetScalar(ssGetSFcnParam(S, B_ki));
-    params.max_e = 0.67;//10; // 35*pi/180
-    params.max_a = 0.523; // 30*pi/180
-    params.max_r = 0.523; // 30*pi/180
-    params.max_t = 1;
+    params.gravity = (float) mxGetScalar( ssGetSFcnParam(S, GRAVITY));
+    params.rho = (float) mxGetScalar( ssGetSFcnParam(S, RHO));
+    params.sigma_accel = (float) mxGetScalar( ssGetSFcnParam(S, SIGMA_ACCEL));
+    params.sigma_gyro = (float) mxGetScalar( ssGetSFcnParam(S, SIGMA_GYRO));
+    params.sigma_n_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_N_GPS));
+    params.sigma_e_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_E_GPS));
+    params.sigma_Vg_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_VG_GPS));
+    params.sigma_course_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_COURSE_GPS));
 
     //std::clock_t now = std::clock();
     input.Ts = (const float) mxGetScalar( ssGetSFcnParam(S, TS));//(now - pController->time)/1000000; //because this will be an input on the autopilot
@@ -215,38 +179,37 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     /* Receive from Output */
     /***********************/
 
-    struct controller_base::output_s output;
-    pController->control(params, input, output);
+    struct estimator_base::output_s output;
+    pEstimator->estimate(params, input, output);
 
     /********************************************/
     /* Pack Received message into Output Vector */
     /********************************************/
     real_T *out = ssGetOutputPortRealSignal(S,0);
-    out[0] = output.delta_e;
-    out[1] = output.delta_a;
-    out[2] = output.delta_r;
-    out[3] = output.delta_t;
-
-    //commands for ploting
-    out[4] = 0; // pn
-    out[5] = 0; // pe
-    out[6] = input.h_c; // h
-    out[7] = input.Va_c; // Va
-    out[8] = 0; // alpha
-    out[9] = 0; // beta
-    out[10] = output.phi_c; // phi_c
-    out[11] = output.theta_c*mxGetScalar(ssGetSFcnParam(S, K_THETA_DC)); // theta;
-    out[12] = input.chi_c;
-    out[13] = 0; // p
-    out[14] = 0; // q
-    out[15] = 0; // r
+    std::cout << output.pn << std::endl;
+    out[0] = output.pn;
+    out[1] = output.pe;
+    out[2] = output.h;
+    out[3] = output.Va;
+    out[4] = output.alpha;
+    out[5] = output.beta;
+    out[6] = output.phi;
+    out[7] = output.theta;
+    out[8] = output.chi;
+    out[9] = output.p;
+    out[10] = output.q;
+    out[11] = output.r;
+    out[12] = output.Vg;
+    out[13] = output.wn;
+    out[14] = output.we;
+    out[15] = output.psi;
 }
 
 
 static void mdlTerminate(SimStruct *S)
 {
-    controller_base* pController = (controller_base*) ssGetPWork(S)[0];
-    delete pController;
+    estimator_base* pEstimator = (estimator_base*) ssGetPWork(S)[0];
+    delete pEstimator;
     mexUnlock();
 }
 
