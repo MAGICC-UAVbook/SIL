@@ -121,7 +121,7 @@ static void mdlStart(SimStruct *S)
 
 static void mdlInitializeSampleTimes(SimStruct *S)
 {
-    ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);//mxGetScalar(ssGetSFcnParam(S, 0)));
+    ssSetSampleTime(S, 0, 0.01);//INHERITED_SAMPLE_TIME);//mxGetScalar(ssGetSFcnParam(S, 0)));
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);
 }
@@ -171,9 +171,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     params.sigma_Vg_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_VG_GPS));
     params.sigma_course_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_COURSE_GPS));
 
-    //std::clock_t now = std::clock();
-    input.Ts = (const float) mxGetScalar( ssGetSFcnParam(S, TS));//(now - pController->time)/1000000; //because this will be an input on the autopilot
-    //pController->time = now;
+    input.Ts = (const float) mxGetScalar( ssGetSFcnParam(S, TS));
 
     /***********************/
     /* Receive from Output */
@@ -186,7 +184,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     /* Pack Received message into Output Vector */
     /********************************************/
     real_T *out = ssGetOutputPortRealSignal(S,0);
-    std::cout << output.pn << std::endl;
+    //    std::cout << input.gps_course << std::endl;
     out[0] = output.pn;
     out[1] = output.pe;
     out[2] = output.h;

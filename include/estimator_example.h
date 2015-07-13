@@ -32,6 +32,25 @@ private:
     float gps_e_old;
     float gps_Vg_old;
     float gps_course_old;
+
+    math::Matrix<2,2> Q_a;
+    math::Matrix<1,1> R_accel;
+    math::Vector<2> f_a;
+    math::Matrix<2,2> A_a;
+    math::Matrix<2,2> I;
+    float h_a;
+    math::Matrix<1,2> C_a;
+    math::Matrix<2,1> C_a_t;
+    math::Matrix<2,1> L_a;
+
+    math::Matrix<7,7> Q_p;
+    math::Matrix<6,6> R_p;
+    math::Vector<7> f_p;
+    math::Matrix<7,7> A_p;
+    float h_p;
+    math::Matrix<1,7> C_p;
+    math::Matrix<7,1> C_p_t;
+    math::Matrix<7,1> L_p;
 };
 
 #endif // ESTIMATOR_EXAMPLE_H
