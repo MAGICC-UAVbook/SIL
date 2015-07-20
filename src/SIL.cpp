@@ -3,23 +3,17 @@
 
 #include <simstruc.h>
 #include <ctime>
-#include "estimator_base.h"
-#include "estimator_example.h"
+#include "path_follower_base.h"
+#include "path_follower_example.h"
 #include <iostream>
 
-#define NUM_PARAMS (9)
+#define NUM_PARAMS (3)
 #define IS_PARAM_DOUBLE(pVal) (mxIsNumeric(pVal) && !mxIsLogical(pVal) &&\
 !mxIsEmpty(pVal) && !mxIsSparse(pVal) && !mxIsComplex(pVal) && mxIsDouble(pVal))
 
-#define GRAVITY 0
-#define RHO 1
-#define SIGMA_ACCEL 2
-#define SIGMA_GYRO 3
-#define SIGMA_N_GPS 4
-#define SIGMA_E_GPS 5
-#define SIGMA_VG_GPS 6
-#define SIGMA_COURSE_GPS 7
-#define TS 8
+#define CHI_INFTY 0
+#define K_PATH 1
+#define K_ORBIT 2
 
 #define MDL_CHECK_PARAMETERS
 #if defined(MDL_CHECK_PARAMETERS)
@@ -70,7 +64,7 @@ static void mdlInitializeSizes(SimStruct *S)
     /* Configure the input ports */
     /*****************************/
     if(!ssSetNumInputPorts(S, 1)) return;
-    ssSetInputPortWidth(S, 0, 14);
+    ssSetInputPortWidth(S, 0, 30);
     ssSetInputPortDirectFeedThrough(S, 0, 1); // we will use the input in the output step
 
     /******************************/
@@ -78,7 +72,7 @@ static void mdlInitializeSizes(SimStruct *S)
     /******************************/
     if (!ssSetNumOutputPorts(S, 1)) return;
     if(!ssSetOutputPortVectorDimension(S, 0, 1)) return;
-    ssSetOutputPortWidth(S, 0, 16); // set the output to be a dynamically sized vector
+    ssSetOutputPortWidth(S, 0, 3); // set the output to be a dynamically sized vector
     ssSetNumSampleTimes(S, 1);
 
     /* specify the sim state compliance to be same as a built-in block */
@@ -112,8 +106,8 @@ static void mdlInitializeSizes(SimStruct *S)
 static void mdlStart(SimStruct *S)
 {
     mexLock();
-    estimator_base* pEstimator = new estimator_example;
-    ssGetPWork(S)[0] = (void *) pEstimator;
+    path_follower_base* pFollower = new path_follower_example;
+    ssGetPWork(S)[0] = (void *) pFollower;
 
     //pController->time = std::clock();
 }
@@ -132,7 +126,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     /**************/
     /* Get Controller out of PWork */
     /**************/
-    estimator_base* pEstimator = (estimator_base*) ssGetPWork(S)[0];
+    path_follower_base* pFollower = (path_follower_base*) ssGetPWork(S)[0];
 
     /**************/
     /* Grab Input */
@@ -140,74 +134,68 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 
     InputRealPtrsType uPtrs = ssGetInputPortRealSignalPtrs(S,0); // this returns a pointer to the data on the input port;
 
-    struct estimator_base::input_s input;
+    struct path_follower_base::input_s input;
 
-    input.gyro_x = *uPtrs[0];
-    input.gyro_y = *uPtrs[1];
-    input.gyro_z = *uPtrs[2];
-    input.accel_x = *uPtrs[3];
-    input.accel_y = *uPtrs[4];
-    input.accel_z = *uPtrs[5];
-    input.static_pres = *uPtrs[6];
-    input.diff_pres = *uPtrs[7];
-    input.gps_n = *uPtrs[8];
-    input.gps_e = *uPtrs[9];
-    input.gps_h = *uPtrs[10];
-    input.gps_Vg = *uPtrs[11];
-    input.gps_course = *uPtrs[12];
+    float flag_f = *uPtrs[0];
+    if(flag_f == 1)
+        input.flag = true;
+    else if(flag_f == 2)
+        input.flag = false;
+    input.Va_d = *uPtrs[1];
+    input.r_path[0] = *uPtrs[2];
+    input.r_path[1] = *uPtrs[3];
+    input.r_path[2] = *uPtrs[4];
+    input.q_path[0] = *uPtrs[5];
+    input.q_path[1] = *uPtrs[6];
+    input.q_path[2] = *uPtrs[7];
+    input.c_orbit[0] = *uPtrs[8];
+    input.c_orbit[1] = *uPtrs[9];
+    input.c_orbit[2] = *uPtrs[10];
+    input.rho_orbit = *uPtrs[11];
+    input.lam_orbit = *uPtrs[12];
+    input.pn = *uPtrs[13];
+    input.pe = *uPtrs[14];
+//    input.h = *uPtrs[15];
+//    input.Va = *uPtrs[16];
+//    input.phi = *uPtrs[19];
+//    input.theta = *uPtrs[20];
+    input.chi = *uPtrs[21];
+//    input.r = *uPtrs[24];
 
     /***************/
     /* Grab Params */
     /***************/
 
-    struct estimator_base::params_s params;
+    struct path_follower_base::params_s params;
 
-    params.gravity = (float) mxGetScalar( ssGetSFcnParam(S, GRAVITY));
-    params.rho = (float) mxGetScalar( ssGetSFcnParam(S, RHO));
-    params.sigma_accel = (float) mxGetScalar( ssGetSFcnParam(S, SIGMA_ACCEL));
-    params.sigma_gyro = (float) mxGetScalar( ssGetSFcnParam(S, SIGMA_GYRO));
-    params.sigma_n_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_N_GPS));
-    params.sigma_e_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_E_GPS));
-    params.sigma_Vg_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_VG_GPS));
-    params.sigma_course_gps = mxGetScalar( ssGetSFcnParam(S, SIGMA_COURSE_GPS));
+    params.chi_infty = (float) mxGetScalar( ssGetSFcnParam(S, CHI_INFTY));
+    params.k_path = (float) mxGetScalar( ssGetSFcnParam(S, K_PATH));
+    params.k_orbit = (float) mxGetScalar( ssGetSFcnParam(S, K_ORBIT));
 
-    input.Ts = (const float) mxGetScalar( ssGetSFcnParam(S, TS));
+    //input.Ts = (const float) mxGetScalar( ssGetSFcnParam(S, TS));
 
     /***********************/
     /* Receive from Output */
     /***********************/
 
-    struct estimator_base::output_s output;
-    pEstimator->estimate(params, input, output);
+    struct path_follower_base::output_s output;
+    pFollower->follow(params, input, output);
 
     /********************************************/
     /* Pack Received message into Output Vector */
     /********************************************/
     real_T *out = ssGetOutputPortRealSignal(S,0);
-    //    std::cout << input.gps_course << std::endl;
-    out[0] = output.pn;
-    out[1] = output.pe;
-    out[2] = output.h;
-    out[3] = output.Va;
-    out[4] = output.alpha;
-    out[5] = output.beta;
-    out[6] = output.phi;
-    out[7] = output.theta;
-    out[8] = output.chi;
-    out[9] = output.p;
-    out[10] = output.q;
-    out[11] = output.r;
-    out[12] = output.Vg;
-    out[13] = output.wn;
-    out[14] = output.we;
-    out[15] = output.psi;
+
+    out[0] = output.Va_c;
+    out[1] = output.h_c;
+    out[2] = output.chi_c;
 }
 
 
 static void mdlTerminate(SimStruct *S)
 {
-    estimator_base* pEstimator = (estimator_base*) ssGetPWork(S)[0];
-    delete pEstimator;
+    path_follower_base* pFollower = (path_follower_base*) ssGetPWork(S)[0];
+    delete pFollower;
     mexUnlock();
 }
 
