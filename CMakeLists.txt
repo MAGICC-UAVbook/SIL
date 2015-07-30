@@ -30,16 +30,16 @@ set(CPP_FILE SIL)
 set(CPP_FILE_NAME src/${CPP_FILE}.cpp)
 INCLUDE_DIRECTORIES(${MATLAB_INCLUDE_DIR} ${SIMULINK_INCLUDE_DIR})
 add_library(${CPP_FILE} SHARED ${CPP_FILE_NAME} ${CMAKE_SOURCE_DIR}/Matlabdef.def
-  src/lib/path_follower_base.cpp
-  src/lib/path_follower_example.cpp
-  include/path_follower_base.h
-  include/path_follower_example.h
-#  include/lib/mathlib/mathlib.h
-#  include/lib/mathlib/math/Limits.cpp
-#  include/lib/mathlib/math/Limits.hpp
-#  include/lib/mathlib/math/Matrix.hpp
-#  include/lib/mathlib/math/Vector.hpp
-#  include/lib/mathlib/math/Quaternion.hpp
+  src/lib/path_manager_base.cpp
+  src/lib/path_manager_example.cpp
+  include/path_manager_base.h
+  include/path_manager_example.h
+  include/lib/mathlib/mathlib.h
+  include/lib/mathlib/math/Limits.cpp
+  include/lib/mathlib/math/Limits.hpp
+  include/lib/mathlib/math/Matrix.hpp
+  include/lib/mathlib/math/Vector.hpp
+  include/lib/mathlib/math/Quaternion.hpp
 
   )
 
