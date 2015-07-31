@@ -170,6 +170,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     struct path_manager_base::params_s params;
 
     params.R_min = (float) mxGetScalar( ssGetSFcnParam(S, R_MIN));
+    //std::cout << "R_min " << params.R_min << std::endl;
 //    params.k_path = (float) mxGetScalar( ssGetSFcnParam(S, K_PATH));
 //    params.k_orbit = (float) mxGetScalar( ssGetSFcnParam(S, K_ORBIT));
 
