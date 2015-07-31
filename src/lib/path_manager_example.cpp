@@ -1,5 +1,5 @@
 #include "path_manager_example.h"
-#include <iostream>
+//#include <iostream>
 
 path_manager_example::path_manager_example() : path_manager_base()
 {
@@ -264,10 +264,12 @@ void path_manager_example::manage_dubins(const params_s &params, const input_s &
         output.rho = 1;
         output.lambda = 1;
         if(dot(p - _dubinspath.w2, _dubinspath.q1) >= 0) // entering H2
+        {
             if(dot(p - _dubinspath.w3, _dubinspath.q3) >= 0) // start in H3
                 _dub_state = dubin_state::Before_H3_wrong_side;
             else
                 _dub_state = dubin_state::Before_H3;
+        }
         break;
     case dubin_state::Before_H3:
         output.flag = false;
@@ -331,7 +333,7 @@ void path_manager_example::manage_dubins(const params_s &params, const input_s &
     }
 }
 
-math::Matrix<3,3> rotz(float theta)
+math::Matrix<3,3> path_manager_example::rotz(float theta)
 {
     math::Matrix<3,3> R;
     R.zero();
@@ -344,7 +346,7 @@ math::Matrix<3,3> rotz(float theta)
     return R;
 }
 
-float mo(float in)
+float path_manager_example::mo(float in)
 {
     float val;
     if(in > 0)
@@ -378,17 +380,17 @@ void path_manager_example::dubinsParameters(const waypoint_s start_node, const w
         _dubinspath.chie = end_node.chi_d;
 
         math::Vector<3> crs = _dubinspath.ps;
-        crs(0) += R*(cosf(M_PI_2_F)*cosf(_dubinspath.chis) - sinf(M_PI_2_F)*sin(_dubinspath.chis));
-        crs(1) += R*(sinf(M_PI_2_F)*cosf(_dubinspath.chis) + cosf(M_PI_2_F)*sin(_dubinspath.chis));
+        crs(0) += R*(cosf(M_PI_2_F)*cosf(_dubinspath.chis) - sinf(M_PI_2_F)*sinf(_dubinspath.chis));
+        crs(1) += R*(sinf(M_PI_2_F)*cosf(_dubinspath.chis) + cosf(M_PI_2_F)*sinf(_dubinspath.chis));
         math::Vector<3> cls = _dubinspath.ps;
-        cls(0) += R*(cosf(-M_PI_2_F)*cosf(_dubinspath.chis) - sinf(-M_PI_2_F)*sin(_dubinspath.chis));
-        cls(1) += R*(sinf(-M_PI_2_F)*cosf(_dubinspath.chis) + cosf(-M_PI_2_F)*sin(_dubinspath.chis));
+        cls(0) += R*(cosf(-M_PI_2_F)*cosf(_dubinspath.chis) - sinf(-M_PI_2_F)*sinf(_dubinspath.chis));
+        cls(1) += R*(sinf(-M_PI_2_F)*cosf(_dubinspath.chis) + cosf(-M_PI_2_F)*sinf(_dubinspath.chis));
         math::Vector<3> cre = _dubinspath.pe;
-        cre(0) += R*(cosf(M_PI_2_F)*cosf(_dubinspath.chie) - sinf(M_PI_2_F)*sin(_dubinspath.chie));
-        cre(1) += R*(sinf(M_PI_2_F)*cosf(_dubinspath.chie) + cosf(M_PI_2_F)*sin(_dubinspath.chie));
+        cre(0) += R*(cosf(M_PI_2_F)*cosf(_dubinspath.chie) - sinf(M_PI_2_F)*sinf(_dubinspath.chie));
+        cre(1) += R*(sinf(M_PI_2_F)*cosf(_dubinspath.chie) + cosf(M_PI_2_F)*sinf(_dubinspath.chie));
         math::Vector<3> cle = _dubinspath.pe;
-        cle(0) += R*(cosf(-M_PI_2_F)*cosf(_dubinspath.chie) - sinf(-M_PI_2_F)*sin(_dubinspath.chie));
-        cle(1) += R*(sinf(-M_PI_2_F)*cosf(_dubinspath.chie) + cosf(-M_PI_2_F)*sin(_dubinspath.chie));
+        cle(0) += R*(cosf(-M_PI_2_F)*cosf(_dubinspath.chie) - sinf(-M_PI_2_F)*sinf(_dubinspath.chie));
+        cle(1) += R*(sinf(-M_PI_2_F)*cosf(_dubinspath.chie) + cosf(-M_PI_2_F)*sinf(_dubinspath.chie));
 
         float theta, theta2;
         // compute L1
@@ -400,7 +402,7 @@ void path_manager_example::dubinsParameters(const waypoint_s start_node, const w
         ell = (cle - crs).length();
         theta = atan2f(cle(1) - crs(1), cle(0) - crs(0));
         float L2;
-        if(fabs(2*R/ell) > 1.0f)
+        if(2*R/ell > 1.0f || 2*R/ell < -1.0f)
             L2 = 9999.0f;
         else
         {
@@ -413,7 +415,7 @@ void path_manager_example::dubinsParameters(const waypoint_s start_node, const w
         ell = (cre - cls).length();
         theta = atan2f(cre(1) - cls(1), cre(0) - cls(0));
         float L3;
-        if(fabs(2*R/ell) > 1.0f)
+        if(2*R/ell > 1.0f || 2*R/ell < -1.0f)
             L3 = 9999.0f;
         else
         {

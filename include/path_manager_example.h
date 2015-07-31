@@ -52,6 +52,8 @@ private:
     struct dubinspath_s _dubinspath;
     void dubinsParameters(const struct waypoint_s start_node, const struct waypoint_s end_node, float R);
 
+    math::Matrix<3,3> rotz(float theta);
+    float mo(float in);
     float dot(math::Vector<3>, math::Vector<3>);
 };
 
