@@ -133,9 +133,9 @@ float controller_example::pitch_hold(float theta_c, float theta, float q, const 
     float ui = params.p_ki * p_integrator;
     float ud = params.p_kd * q;
 
-    float delta_e = sat(up + ui + ud, params.max_e, -params.max_e);
+    float delta_e = sat(params.trim_e + up + ui + ud, params.max_e, -params.max_e);
     if(params.p_ki != 0) {
-        float delta_e_unsat = up + ui + ud;
+        float delta_e_unsat = params.trim_e + up + ui + ud;
         p_integrator = p_integrator + (Ts/params.p_ki) * (delta_e - delta_e_unsat);
     }
 
@@ -175,9 +175,9 @@ float controller_example::airspeed_with_throttle_hold(float Va_c, float Va, cons
     float ui = params.a_t_ki * at_integrator;
     float ud = params.a_t_kd * at_differentiator;
 
-    float delta_t = sat(up + ui + ud, params.max_t, 0);
+    float delta_t = sat(params.trim_t + up + ui + ud, params.max_t, 0);
     if(params.a_t_ki != 0) {
-        float delta_t_unsat = up + ui + ud;
+        float delta_t_unsat = params.trim_t + up + ui + ud;
         at_integrator = at_integrator + (Ts/params.a_t_ki) * (delta_t - delta_t_unsat);
     }
 

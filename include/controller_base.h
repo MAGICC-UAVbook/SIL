@@ -68,10 +68,17 @@ public:
         float b_kp;
         float b_kd;
         float b_ki;
+        float trim_e;
+//        float trim_a;
+//        float trim_r;
+        float trim_t;
         float max_e;
         float max_a;
         float max_r;
         float max_t;
+//        float pwm_rad_e;
+//        float pwm_rad_a;
+//        float pwm_rad_r;
     };
 
     virtual void control(const struct params_s &params, const struct input_s &input, struct output_s &output) = 0;

@@ -7,7 +7,7 @@
 #include "controller_example.h"
 #include <iostream>
 
-#define NUM_PARAMS (26)
+#define NUM_PARAMS (28)
 #define IS_PARAM_DOUBLE(pVal) (mxIsNumeric(pVal) && !mxIsLogical(pVal) &&\
 !mxIsEmpty(pVal) && !mxIsSparse(pVal) && !mxIsComplex(pVal) && mxIsDouble(pVal))
 
@@ -37,6 +37,8 @@
 #define B_kp 23
 #define B_ki 24
 #define B_kd 25
+#define TRIM_E 26
+#define TRIM_T 27
 
 
 #define MDL_CHECK_PARAMETERS
@@ -202,6 +204,8 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     params.b_kp = mxGetScalar(ssGetSFcnParam(S, B_kp));
     params.b_kd = mxGetScalar(ssGetSFcnParam(S, B_kd));
     params.b_ki = mxGetScalar(ssGetSFcnParam(S, B_ki));
+    params.trim_e = mxGetScalar(ssGetSFcnParam(S, TRIM_E));
+    params.trim_t = mxGetScalar(ssGetSFcnParam(S, TRIM_T));
     params.max_e = 0.67;//10; // 35*pi/180
     params.max_a = 0.523; // 30*pi/180
     params.max_r = 0.523; // 30*pi/180
